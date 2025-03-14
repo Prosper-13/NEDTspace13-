@@ -1,0 +1,646 @@
+-- Create Database
+CREATE DATABASE LibraryManagementSystem_LMS;
+GO
+
+USE LibraryManagementSystem_LMS;
+GO
+
+-- Create Categories Table
+CREATE TABLE Categories_LMS (
+    category_id INT PRIMARY KEY IDENTITY(1,1),
+    name NVARCHAR(100) NOT NULL,
+    description NVARCHAR(500),
+    created_at DATETIME DEFAULT GETDATE(),
+    modified_at DATETIME DEFAULT GETDATE()
+);
+GO
+
+-- Create Books Table
+CREATE TABLE Books_LMS (
+    book_id INT PRIMARY KEY IDENTITY(1,1),
+    title NVARCHAR(255) NOT NULL,
+    author NVARCHAR(255) NOT NULL,
+    isbn VARCHAR(20) UNIQUE,
+    publication_year INT,
+    publisher NVARCHAR(255),
+    category_id INT FOREIGN KEY REFERENCES Categories_LMS(category_id),
+    copies_total INT NOT NULL DEFAULT 1,
+    copies_available INT NOT NULL DEFAULT 1,
+    added_date DATETIME DEFAULT GETDATE(),
+    modified_at DATETIME DEFAULT GETDATE(),
+    CONSTRAINT CHK_Copies CHECK (copies_available <= copies_total)
+);
+GO
+
+-- Create Members Table
+CREATE TABLE Members_LMS (
+    member_id INT PRIMARY KEY IDENTITY(1,1),
+    name NVARCHAR(255) NOT NULL,
+    email NVARCHAR(255) UNIQUE,
+    phone VARCHAR(20),
+    address NVARCHAR(500),
+    join_date DATETIME DEFAULT GETDATE(),
+    membership_status VARCHAR(20) DEFAULT 'Active', -- Active, Suspended, Expired
+    membership_end_date DATETIME,
+    modified_at DATETIME DEFAULT GETDATE()
+);
+GO
+
+-- Create Staff Table
+CREATE TABLE Staff_LMS (
+    staff_id INT PRIMARY KEY IDENTITY(1,1),
+    name NVARCHAR(255) NOT NULL,
+    email NVARCHAR(255) UNIQUE,
+    password_hash NVARCHAR(255) NOT NULL,
+    position NVARCHAR(100),
+    hire_date DATETIME DEFAULT GETDATE(),
+    role VARCHAR(20) NOT NULL, -- Admin, Librarian, Assistant
+    last_login DATETIME,
+    modified_at DATETIME DEFAULT GETDATE()
+);
+GO
+
+-- Create Borrowings Table
+CREATE TABLE Borrowings_LMS (
+    borrow_id INT PRIMARY KEY IDENTITY(1,1),
+    book_id INT FOREIGN KEY REFERENCES Books_LMS(book_id),
+    member_id INT FOREIGN KEY REFERENCES Members_LMS(member_id),
+    borrow_date DATETIME DEFAULT GETDATE(),
+    due_date DATETIME NOT NULL,
+    return_date DATETIME NULL,
+    fine_amount DECIMAL(10, 2) DEFAULT 0.00,
+    fine_paid BIT DEFAULT 0,
+    issued_by INT FOREIGN KEY REFERENCES Staff_LMS(staff_id),
+    received_by INT NULL FOREIGN KEY REFERENCES Staff_LMS(staff_id),
+    status VARCHAR(20) DEFAULT 'Borrowed', -- Borrowed, Returned, Overdue
+    created_at DATETIME DEFAULT GETDATE(),
+    modified_at DATETIME DEFAULT GETDATE()
+);
+GO
+
+-- Create ActivityLogs Table for audit logging
+CREATE TABLE ActivityLogs_LMS (
+    log_id INT PRIMARY KEY IDENTITY(1,1),
+    action_type VARCHAR(50) NOT NULL,
+    action_description NVARCHAR(500) NOT NULL,
+    entity_type VARCHAR(50) NOT NULL, -- Books, Members, Borrowings, etc.
+    entity_id INT,
+    performed_by INT, -- Staff ID if available
+    performed_at DATETIME DEFAULT GETDATE(),
+    ip_address NVARCHAR(50)
+);
+GO
+
+-- Insert sample data
+USE LibraryManagementSystem_LMS;
+GO
+
+-- Insert Categories
+INSERT INTO Categories_LMS (name, description)
+VALUES 
+    ('Fiction', 'Novels, short stories, and other fictional works'),
+    ('Science', 'Books related to various scientific disciplines'),
+    ('History', 'Historical books and biographies'),
+    ('Technology', 'Books on programming, computers, and technology'),
+    ('Philosophy', 'Books on philosophical concepts and famous philosophers');
+GO
+
+-- Insert Books
+INSERT INTO Books_LMS (title, author, isbn, publication_year, publisher, category_id, copies_total, copies_available)
+VALUES 
+    ('To Kill a Mockingbird', 'Harper Lee', '9780061120084', 1960, 'HarperCollins', 1, 3, 3),
+    ('A Brief History of Time', 'Stephen Hawking', '9780553380163', 1988, 'Bantam Books', 2, 2, 2),
+    ('The Great Gatsby', 'F. Scott Fitzgerald', '9780743273565', 1925, 'Scribner', 1, 4, 4),
+    ('Clean Code', 'Robert C. Martin', '9780132350884', 2008, 'Prentice Hall', 4, 2, 2),
+    ('Sapiens: A Brief History of Humankind', 'Yuval Noah Harari', '9780062316097', 2014, 'Harper', 3, 3, 3),
+    ('Meditations', 'Marcus Aurelius', '9780140449334', 180, 'Penguin Classics', 5, 1, 1);
+GO
+
+-- Insert Staff
+-- Note: In a real system, you'd use proper password hashing. These are SHA-256 hashes for demo purposes only.
+INSERT INTO Staff_LMS (name, email, password_hash, position, role)
+VALUES 
+    ('Admin User', 'admin@library.com', HASHBYTES('SHA2_256', 'admin123'), 'Head Librarian', 'Admin'),
+    ('John Librarian', 'john@library.com', HASHBYTES('SHA2_256', 'john123'), 'Senior Librarian', 'Librarian'),
+    ('Sarah Assistant', 'sarah@library.com', HASHBYTES('SHA2_256', 'sarah123'), 'Library Assistant', 'Assistant'),
+    ('Michael Manager', 'michael@library.com', HASHBYTES('SHA2_256', 'michael123'), 'Library Manager', 'Librarian'),
+    ('Emma Trainee', 'emma@library.com', HASHBYTES('SHA2_256', 'emma123'), 'Trainee', 'Assistant');
+GO
+
+-- Insert Members
+INSERT INTO Members_LMS (name, email, phone, address, join_date, membership_end_date)
+VALUES 
+    ('Alice Johnson', 'alice@email.com', '555-1234', '123 Main St, Anytown', DATEADD(month, -6, GETDATE()), DATEADD(year, 1, GETDATE())),
+    ('Bob Smith', 'bob@email.com', '555-5678', '456 Oak Ave, Somewhere', DATEADD(month, -3, GETDATE()), DATEADD(year, 1, GETDATE())),
+    ('Carol Davis', 'carol@email.com', '555-9012', '789 Pine Rd, Nowhere', DATEADD(month, -2, GETDATE()), DATEADD(year, 1, GETDATE())),
+    ('David Wilson', 'david@email.com', '555-3456', '321 Cedar Ln, Anywhere', DATEADD(month, -1, GETDATE()), DATEADD(year, 1, GETDATE())),
+    ('Eve Brown', 'eve@email.com', '555-7890', '654 Birch Blvd, Somewhere', DATEADD(week, -1, GETDATE()), DATEADD(year, 1, GETDATE()));
+GO
+
+-- Insert some sample borrowings
+INSERT INTO Borrowings_LMS (book_id, member_id, borrow_date, due_date, issued_by, status)
+VALUES 
+    (1, 1, DATEADD(day, -20, GETDATE()), DATEADD(day, -6, GETDATE()), 2, 'Overdue'),
+    (3, 2, DATEADD(day, -10, GETDATE()), DATEADD(day, 4, GETDATE()), 2, 'Borrowed'),
+    (5, 3, DATEADD(day, -5, GETDATE()), DATEADD(day, 9, GETDATE()), 4, 'Borrowed');
+GO
+
+-- Add a completed borrowing with return
+INSERT INTO Borrowings_LMS (book_id, member_id, borrow_date, due_date, return_date, issued_by, received_by, status)
+VALUES 
+    (2, 4, DATEADD(day, -15, GETDATE()), DATEADD(day, -1, GETDATE()), DATEADD(day, -2, GETDATE()), 2, 3, 'Returned');
+GO
+
+-- Update available copies for borrowed books
+UPDATE Books_LMS SET copies_available = copies_available - 1 WHERE book_id = 1;
+UPDATE Books_LMS SET copies_available = copies_available - 1 WHERE book_id = 3;
+UPDATE Books_LMS SET copies_available = copies_available - 1 WHERE book_id = 5;
+GO
+
+-- Add some activity logs
+INSERT INTO ActivityLogs_LMS (action_type, action_description, entity_type, entity_id, performed_by)
+VALUES 
+    ('LOGIN', 'Admin user logged in', 'Staff', 1, 1),
+    ('INSERT', 'New member added', 'Members', 5, 1),
+    ('BORROW', 'Book borrowed', 'Borrowings', 1, 2),
+    ('RETURN', 'Book returned', 'Borrowings', 4, 3),
+    ('UPDATE', 'Book information updated', 'Books', 2, 4);
+GO
+
+-- Access Control Implementation
+USE LibraryManagementSystem_LMS;
+GO
+
+-- 1. Create login users
+-- In a production environment, you would use stronger passwords
+USE master;
+GO
+
+-- Create login for each role
+CREATE LOGIN AdminLogin WITH PASSWORD = 'Admin@123';
+CREATE LOGIN LibrarianLogin WITH PASSWORD = 'Librarian@123';
+CREATE LOGIN MemberLogin WITH PASSWORD = 'Member@123';
+CREATE LOGIN GuestLogin WITH PASSWORD = 'Guest@123';
+GO
+
+-- Switch to our database
+USE LibraryManagementSystem_LMS;
+GO
+
+-- 2. Create database users for each login
+CREATE USER AdminUser FOR LOGIN AdminLogin;
+CREATE USER LibrarianUser FOR LOGIN LibrarianLogin;
+CREATE USER MemberUser FOR LOGIN MemberLogin;
+CREATE USER GuestUser FOR LOGIN GuestLogin;
+GO
+
+-- 3. Create roles for RBAC
+CREATE ROLE Admin_Role_LMS;
+CREATE ROLE Librarian_Role_LMS;
+CREATE ROLE Member_Role_LMS;
+CREATE ROLE Guest_Role_LMS;
+GO
+
+-- 4. Add users to roles
+ALTER ROLE Admin_Role_LMS ADD MEMBER AdminUser;
+ALTER ROLE Librarian_Role_LMS ADD MEMBER LibrarianUser;
+ALTER ROLE Member_Role_LMS ADD MEMBER MemberUser;
+ALTER ROLE Guest_Role_LMS ADD MEMBER GuestUser;
+GO
+
+-- 5. Grant permissions to roles
+
+-- Admin Role (Full access)
+GRANT CONTROL ON DATABASE::LibraryManagementSystem_LMS TO Admin_Role_LMS;
+GO
+
+-- Librarian Role (Can manage books, members, and borrowings)
+GRANT SELECT, INSERT, UPDATE, DELETE ON Books_LMS TO Librarian_Role_LMS;
+GRANT SELECT, INSERT, UPDATE, DELETE ON Categories_LMS TO Librarian_Role_LMS;
+GRANT SELECT, INSERT, UPDATE, DELETE ON Members_LMS TO Librarian_Role_LMS;
+GRANT SELECT, INSERT, UPDATE, DELETE ON Borrowings_LMS TO Librarian_Role_LMS;
+GRANT SELECT ON Staff_LMS TO Librarian_Role_LMS;
+GRANT SELECT, INSERT ON ActivityLogs_LMS TO Librarian_Role_LMS;
+-- Grant with grant option for specific tasks
+GRANT SELECT, INSERT ON Books_LMS TO Librarian_Role_LMS WITH GRANT OPTION;
+GO
+
+-- Member Role (Can view books, their own borrowings)
+GRANT SELECT ON Books_LMS TO Member_Role_LMS;
+GRANT SELECT ON Categories_LMS TO Member_Role_LMS;
+-- Limited view on borrowings (will be implemented with a view)
+GO
+
+-- Guest Role (Can only view books and categories)
+GRANT SELECT ON Books_LMS TO Guest_Role_LMS;
+GRANT SELECT ON Categories_LMS TO Guest_Role_LMS;
+GO
+
+-- 6. Create views for restricted access
+
+-- Create a view for members to see only their own borrowings
+CREATE VIEW MemberBorrowings_LMS
+AS
+SELECT b.borrow_id, b.book_id, bk.title, bk.author, 
+       b.borrow_date, b.due_date, b.return_date, 
+       b.fine_amount, b.status
+FROM Borrowings_LMS b
+JOIN Books_LMS bk ON b.book_id = bk.book_id
+WHERE b.member_id = USER_ID();
+GO
+
+-- Grant access to the view for members
+GRANT SELECT ON MemberBorrowings_LMS TO Member_Role_LMS;
+GO
+
+-- 7. Demonstrate REVOKE Command
+-- Revoke delete permission from Librarian on Members table
+REVOKE DELETE ON Members_LMS FROM Librarian_Role_LMS;
+GO
+
+-- 8. Create a procedure to show how revoking affects data access
+CREATE PROCEDURE TestAccessRevocation_LMS
+AS
+BEGIN
+    PRINT 'Testing access after revocation:';
+    
+    -- Try to delete a member as Librarian (should fail)
+    BEGIN TRY
+        DELETE FROM Members_LMS WHERE member_id = 5;
+        PRINT 'Deletion succeeded (unexpected)';
+    END TRY
+    BEGIN CATCH
+        PRINT 'Deletion failed as expected due to revoked permissions';
+        PRINT ERROR_MESSAGE();
+    END CATCH
+END;
+GO
+
+-- 9. Create stored procedure to manage user role assignments
+CREATE PROCEDURE ManageUserRole_LMS
+    @Action VARCHAR(10), -- 'ASSIGN' or 'REMOVE'
+    @UserName NVARCHAR(128),
+    @RoleName NVARCHAR(128)
+AS
+BEGIN
+    IF @Action = 'ASSIGN'
+    BEGIN
+        DECLARE @SQLAssign NVARCHAR(MAX);
+        SET @SQLAssign = 'ALTER ROLE ' + QUOTENAME(@RoleName) + ' ADD MEMBER ' + QUOTENAME(@UserName);
+        EXEC sp_executesql @SQLAssign;
+        
+        -- Log the action
+        INSERT INTO ActivityLogs_LMS (action_type, action_description, entity_type, performed_by)
+        VALUES ('ROLE_ASSIGN', 'User ' + @UserName + ' assigned to role ' + @RoleName, 'Security', SUSER_ID());
+    END
+    ELSE IF @Action = 'REMOVE'
+    BEGIN
+        DECLARE @SQLRemove NVARCHAR(MAX);
+        SET @SQLRemove = 'ALTER ROLE ' + QUOTENAME(@RoleName) + ' DROP MEMBER ' + QUOTENAME(@UserName);
+        EXEC sp_executesql @SQLRemove;
+        
+        -- Log the action
+        INSERT INTO ActivityLogs_LMS (action_type, action_description, entity_type, performed_by)
+        VALUES ('ROLE_REMOVE', 'User ' + @UserName + ' removed from role ' + @RoleName, 'Security', SUSER_ID());
+    END
+    ELSE
+    BEGIN
+        RAISERROR('Invalid action. Use ''ASSIGN'' or ''REMOVE''', 16, 1);
+    END
+END;
+GO
+
+-- Example usage:
+-- EXEC ManageUserRole_LMS 'ASSIGN', 'LibrarianUser', 'Member_Role_LMS';
+-- EXEC ManageUserRole_LMS 'REMOVE', 'LibrarianUser', 'Member_Role_LMS';
+
+-- Stored Procedures, Triggers, Functions, and Conditional Logic
+USE LibraryManagementSystem_LMS;
+GO
+
+-- 1. STORED PROCEDURES
+
+-- Procedure to register a new member
+CREATE PROCEDURE RegisterMember_LMS
+    @Name NVARCHAR(255),
+    @Email NVARCHAR(255),
+    @Phone VARCHAR(20),
+    @Address NVARCHAR(500),
+    @MemberID INT OUTPUT
+AS
+BEGIN
+    BEGIN TRY
+        BEGIN TRANSACTION;
+        
+        -- Check if email already exists
+        IF EXISTS (SELECT 1 FROM Members_LMS WHERE email = @Email)
+        BEGIN
+            RAISERROR('A member with this email already exists.', 16, 1);
+            RETURN;
+        END
+        
+        -- Insert new member
+        INSERT INTO Members_LMS (name, email, phone, address, join_date, membership_end_date)
+        VALUES (@Name, @Email, @Phone, @Address, GETDATE(), DATEADD(year, 1, GETDATE()));
+        
+        -- Get the new member ID
+        SET @MemberID = SCOPE_IDENTITY();
+        
+        -- Log the action
+        INSERT INTO ActivityLogs_LMS (action_type, action_description, entity_type, entity_id, performed_by)
+        VALUES ('INSERT', 'New member registered: ' + @Name, 'Members', @MemberID, SUSER_ID());
+        
+        COMMIT TRANSACTION;
+        
+        -- Return newly created member details
+        SELECT member_id, name, email, join_date, membership_end_date 
+        FROM Members_LMS WHERE member_id = @MemberID;
+    END TRY
+    BEGIN CATCH
+        ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH
+END;
+GO
+
+-- Procedure to process book borrowing
+CREATE PROCEDURE BorrowBook_LMS
+    @BookID INT,
+    @MemberID INT,
+    @StaffID INT,
+    @BorrowDays INT = 14,
+    @BorrowID INT OUTPUT
+AS
+BEGIN
+    BEGIN TRY
+        BEGIN TRANSACTION;
+        
+        DECLARE @CopiesAvailable INT;
+        DECLARE @MemberStatus VARCHAR(20);
+        DECLARE @ActiveBorrowings INT;
+        
+        -- Check if the book exists and has available copies
+        SELECT @CopiesAvailable = copies_available 
+        FROM Books_LMS 
+        WHERE book_id = @BookID;
+        
+        IF @CopiesAvailable IS NULL
+        BEGIN
+            RAISERROR('Book does not exist.', 16, 1);
+            RETURN;
+        END
+        
+        IF @CopiesAvailable <= 0
+        BEGIN
+            RAISERROR('No copies available for borrowing.', 16, 1);
+            RETURN;
+        END
+        
+        -- Check if member exists and is active
+        SELECT @MemberStatus = membership_status
+        FROM Members_LMS
+        WHERE member_id = @MemberID;
+        
+        IF @MemberStatus IS NULL
+        BEGIN
+            RAISERROR('Member does not exist.', 16, 1);
+            RETURN;
+        END
+        
+        IF @MemberStatus <> 'Active'
+        BEGIN
+            RAISERROR('Member account is not active.', 16, 1);
+            RETURN;
+        END
+        
+        -- Check if member has reached borrowing limit (max 5 active borrowings)
+        SELECT @ActiveBorrowings = COUNT(*)
+        FROM Borrowings_LMS
+        WHERE member_id = @MemberID AND return_date IS NULL;
+        
+        IF @ActiveBorrowings >= 5
+        BEGIN
+            RAISERROR('Member has reached the maximum borrowing limit.', 16, 1);
+            RETURN;
+        END
+        
+        -- Process the borrowing
+        INSERT INTO Borrowings_LMS (book_id, member_id, borrow_date, due_date, issued_by, status)
+        VALUES (@BookID, @MemberID, GETDATE(), DATEADD(day, @BorrowDays, GETDATE()), @StaffID, 'Borrowed');
+        
+        SET @BorrowID = SCOPE_IDENTITY();
+        
+        -- Update available copies
+        UPDATE Books_LMS
+        SET copies_available = copies_available - 1
+        WHERE book_id = @BookID;
+        
+        -- Log the action
+        INSERT INTO ActivityLogs_LMS (action_type, action_description, entity_type, entity_id, performed_by)
+        VALUES ('BORROW', 'Book borrowed by member', 'Borrowings', @BorrowID, @StaffID);
+        
+        COMMIT TRANSACTION;
+        
+        -- Return borrowing details
+        SELECT b.borrow_id, bk.title, bk.author, m.name AS member_name, 
+               b.borrow_date, b.due_date
+        FROM Borrowings_LMS b
+        JOIN Books_LMS bk ON b.book_id = bk.book_id
+        JOIN Members_LMS m ON b.member_id = m.member_id
+        WHERE b.borrow_id = @BorrowID;
+    END TRY
+    BEGIN CATCH
+        ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH
+END;
+GO
+
+-- Procedure to return a book
+CREATE PROCEDURE ReturnBook_LMS
+    @BorrowID INT,
+    @StaffID INT,
+    @ActualReturnDate DATETIME = NULL
+AS
+BEGIN
+    BEGIN TRY
+        BEGIN TRANSACTION;
+        
+        DECLARE @BookID INT;
+        DECLARE @DueDate DATETIME;
+        DECLARE @FineAmount DECIMAL(10, 2) = 0.00;
+        DECLARE @DaysLate INT = 0;
+        
+        -- Set return date to current date if not specified
+        IF @ActualReturnDate IS NULL
+            SET @ActualReturnDate = GETDATE();
+        
+        -- Check if borrowing exists and is not already returned
+        SELECT @BookID = book_id, @DueDate = due_date
+        FROM Borrowings_LMS
+        WHERE borrow_id = @BorrowID AND return_date IS NULL;
+        
+        IF @BookID IS NULL
+        BEGIN
+            RAISERROR('Borrowing record not found or already returned.', 16, 1);
+            RETURN;
+        END
+        
+        -- Calculate fine if returned late (0.50 per day)
+        IF @ActualReturnDate > @DueDate
+        BEGIN
+            SET @DaysLate = DATEDIFF(day, @DueDate, @ActualReturnDate);
+            SET @FineAmount = @DaysLate * 0.50;
+        END
+        
+        -- Update borrowing record
+        UPDATE Borrowings_LMS
+        SET return_date = @ActualReturnDate,
+            received_by = @StaffID,
+            fine_amount = @FineAmount,
+            status = CASE 
+                        WHEN @FineAmount > 0 THEN 'Returned Late'
+                        ELSE 'Returned'
+                     END,
+            modified_at = GETDATE()
+        WHERE borrow_id = @BorrowID;
+        
+        -- Update available copies
+        UPDATE Books_LMS
+        SET copies_available = copies_available + 1,
+            modified_at = GETDATE()
+        WHERE book_id = @BookID;
+        
+        -- Log the action
+        INSERT INTO ActivityLogs_LMS (action_type, action_description, entity_type, entity_id, performed_by)
+        VALUES ('RETURN', 'Book returned. Fine: $' + CAST(@FineAmount AS VARCHAR), 'Borrowings', @BorrowID, @StaffID);
+        
+        COMMIT TRANSACTION;
+        
+        -- Return details including fine information
+        SELECT b.borrow_id, bk.title, m.name AS member_name, 
+               b.borrow_date, b.due_date, b.return_date, 
+               b.fine_amount, b.status
+        FROM Borrowings_LMS b
+        JOIN Books_LMS bk ON b.book_id = bk.book_id
+        JOIN Members_LMS m ON b.member_id = m.member_id
+        WHERE b.borrow_id = @BorrowID;
+    END TRY
+    BEGIN CATCH
+        ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH
+END;
+GO
+
+-- 2. TRIGGERS
+
+-- Trigger to update book copies and log when a book is borrowed
+CREATE TRIGGER AfterBorrowInsert_LMS
+ON Borrowings_LMS
+AFTER INSERT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    -- This action is already handled in the stored procedure,
+    -- but we'll keep the trigger as a safeguard for direct inserts
+    -- and to demonstrate trigger functionality
+    
+    -- Update book copies if not updated already
+    UPDATE b
+    SET copies_available = 
+        CASE 
+            WHEN b.copies_available > 0 THEN b.copies_available - 1
+            ELSE 0
+        END,
+        modified_at = GETDATE()
+    FROM Books_LMS b
+    JOIN inserted i ON b.book_id = i.book_id
+    WHERE i.return_date IS NULL;
+    
+    -- Log overdue items if due date is in the past
+    INSERT INTO ActivityLogs_LMS (action_type, action_description, entity_type, entity_id, performed_by)
+    SELECT 'OVERDUE_CHECK', 
+           'Borrowing created with past due date: ' + CONVERT(VARCHAR, i.due_date, 120),
+           'Borrowings', i.borrow_id, i.issued_by
+    FROM inserted i
+    WHERE i.due_date < GETDATE();
+END;
+GO
+
+-- Trigger to prevent deleting books that are currently borrowed
+CREATE TRIGGER PreventBookDeletion_LMS
+ON Books_LMS
+INSTEAD OF DELETE
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    -- Check if any books being deleted are currently borrowed
+    IF EXISTS (
+        SELECT 1
+        FROM deleted d
+        JOIN Borrowings_LMS b ON d.book_id = b.book_id
+        WHERE b.return_date IS NULL
+    )
+    BEGIN
+        RAISERROR('Cannot delete books that are currently borrowed.', 16, 1);
+        RETURN;
+    END
+    
+    -- If no borrowed books, proceed with deletion
+    DELETE b
+    FROM Books_LMS b
+    JOIN deleted d ON b.book_id = d.book_id;
+    
+    -- Log the deletion
+    INSERT INTO ActivityLogs_LMS (action_type, action_description, entity_type, entity_id, performed_by)
+    SELECT 'DELETE', 'Book deleted: ' + d.title, 'Books', d.book_id, SUSER_ID()
+    FROM deleted d;
+END;
+GO
+-- Trigger to automatically update the status of borrowings based on due date
+
+-- 3. FUNCTIONS
+
+-- Function to calculate fine for a borrowing
+CREATE FUNCTION CalculateFine_LMS (
+    @BorrowID INT,
+    @ReturnDate DATETIME = NULL
+)
+RETURNS DECIMAL(10, 2)
+AS
+BEGIN
+    DECLARE @DueDate DATETIME;
+    DECLARE @ActualReturnDate DATETIME;
+    DECLARE @FineAmount DECIMAL(10, 2) = 0.00;
+    DECLARE @DaysLate INT = 0;
+    
+    -- Get the due date
+    SELECT @DueDate = due_date
+    FROM Borrowings_LMS
+    WHERE borrow_id = @BorrowID;
+    
+    -- Determine return date (actual or current date if still borrowed)
+    IF @ReturnDate IS NULL
+    BEGIN
+        SELECT @ActualReturnDate = ISNULL(return_date, GETDATE())
+        FROM Borrowings_LMS
+        WHERE borrow_id = @BorrowID;
+    END
+    ELSE
+    BEGIN
+        SET @ActualReturnDate = @ReturnDate;
+    END
+    
+    -- Calculate fine if returned late (0.50 per day)
+    IF @ActualReturnDate > @DueDate
+    BEGIN
+        SET @DaysLate = DATEDIFF(day, @DueDate, @ActualReturnDate);
+        SET @FineAmount = @DaysLate * 0.50;
+    END
+    
+    RETURN @FineAmount;
+END
+
