@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.text.Font?>
+<?import javafx.scene.effect.*?>
+<?import javafx.scene.paint.LinearGradient?>
+<?import javafx.scene.paint.Stop?>
+
+<VBox alignment="CENTER" spacing="20.0" xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml" fx:controller="com.facedetection.MainController">
+    <padding>
+        <Insets bottom="20.0" left="20.0" right="20.0" top="20.0"/>
+    </padding>
+
+    <Label fx:id="statusLabel" text="Face Detection App" style="-fx-text-fill: #2c3e50;">
+        <font>
+            <Font size="24.0" name="System Bold"/>
+        </font>
+        <effect>
+            <DropShadow color="#00000080" radius="3.0" spread="0.1"/>
+        </effect>
+    </Label>
+
+    <!-- User Registration Form -->
+    <VBox fx:id="registrationForm" spacing="15" style="-fx-background-color: linear-gradient(to bottom right, #3498db, #2c3e50); -fx-padding: 25; -fx-background-radius: 15; -fx-border-radius: 15; -fx-border-color: #1f2d3d; -fx-border-width: 1;">
+        <effect>
+            <DropShadow color="#00000080" radius="10.0" spread="0.05"/>
+        </effect>
+        
+        <Label text="User Registration" style="-fx-text-fill: white; -fx-font-size: 20px; -fx-font-weight: bold;">
+            <VBox.margin>
+                <Insets bottom="10.0"/>
+            </VBox.margin>
+        </Label>
+        
+        <GridPane vgap="15" hgap="15">
+            <Label text="Name:" GridPane.rowIndex="0" GridPane.columnIndex="0" style="-fx-text-fill: white;"/>
+            <TextField fx:id="nameField" promptText="Enter your full name" GridPane.rowIndex="0" GridPane.columnIndex="1" 
+                       style="-fx-background-radius: 8; -fx-background-color: #ffffff; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 5, 0, 0, 2);"/>
+            
+            <Label text="Email:" GridPane.rowIndex="1" GridPane.columnIndex="0" style="-fx-text-fill: white;"/>
+            <TextField fx:id="emailField" promptText="Enter your email address" GridPane.rowIndex="1" GridPane.columnIndex="1" 
+                       style="-fx-background-radius: 8; -fx-background-color: #ffffff; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 5, 0, 0, 2);"/>
+            
+            <Label text="Password:" GridPane.rowIndex="2" GridPane.columnIndex="0" style="-fx-text-fill: white;"/>
+            <PasswordField fx:id="passwordField" promptText="Enter your password" GridPane.rowIndex="2" GridPane.columnIndex="1" 
+                           style="-fx-background-radius: 8; -fx-background-color: #ffffff; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 5, 0, 0, 2);"/>
+        </GridPane>
+
+        <Button fx:id="registerButton" text="Register" onAction="#handleRegister" 
+                style="-fx-background-color: #2ecc71; -fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold; -fx-padding: 10 25; -fx-background-radius: 30; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 5, 0, 0, 2);">
+            <VBox.margin>
+                <Insets top="15.0"/>
+            </VBox.margin>
+        </Button>
+        
+        <Label text="Register to use face recognition" style="-fx-text-fill: #ecf0f1; -fx-font-style: italic; -fx-font-size: 12px;">
+            <VBox.margin>
+                <Insets top="5.0"/>
+            </VBox.margin>
+        </Label>
+    </VBox>
+
+    <Pane fx:id="videoPane" VBox.vgrow="ALWAYS" style="-fx-background-color: #34495e; -fx-background-radius: 10; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 10, 0, 0, 3);">
+        <minHeight>400.0</minHeight>
+        <minWidth>600.0</minWidth>
+    </Pane>
+
+    <HBox alignment="CENTER" spacing="20.0">
+        <Button fx:id="startButton" text="Start Camera" onAction="#handleStartCamera" 
+                style="-fx-background-color: #27ae60; -fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold; -fx-padding: 10 20; -fx-background-radius: 25; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 5, 0, 0, 2);">
+            <HBox.margin>
+                <Insets bottom="10.0" left="10.0" right="10.0" top="10.0"/>
+            </HBox.margin>
+            <graphic>
+                <Region style="-fx-background-color: white; -fx-shape: 'M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM6.79 5.093A.5.5 0 0 0 6 5.5v5a.5.5 0 0 0 .79.407l3.5-2.5a.5.5 0 0 0 0-.814l-3.5-2.5z';" 
+                       prefWidth="20" prefHeight="20"/>
+            </graphic>
+        </Button>
+        <Button fx:id="stopButton" text="Stop Camera" onAction="#handleStopCamera" disable="true" 
+                style="-fx-background-color: #c0392b; -fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold; -fx-padding: 10 20; -fx-background-radius: 25; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 5, 0, 0, 2);">
+            <HBox.margin>
+                <Insets bottom="10.0" left="10.0" right="10.0" top="10.0"/>
+            </HBox.margin>
+            <graphic>
+                <Region style="-fx-background-color: white; -fx-shape: 'M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM4.5 7.5a.5.5 0 0 0 0 1h7a.5.5 0 0 0 0-1h-7z';" 
+                       prefWidth="20" prefHeight="20"/>
+            </graphic>
+        </Button>
+    </HBox>
+
+    <Label text="Press 'Start Camera' to begin face detection" style="-fx-text-fill: #7f8c8d;">
+        <font>
+            <Font size="12.0"/>
+        </font>
+    </Label>
+</VBox> 
